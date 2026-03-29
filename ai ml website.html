@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NeuralCore — AI & Machine Learning Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#020408;--surface:#080e18;--card:#0c1624;--border:#1a2d4a;
+    --accent:#00d4ff;--accent2:#7c3aed;--accent3:#10b981;
+    --text:#e2eaf5;--muted:#5a7a9a;--glow:0 0 40px rgba(0,212,255,0.15);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;overflow-x:hidden;cursor:none;}
+  .cursor{width:12px;height:12px;background:var(--accent);border-radius:50%;position:fixed;top:0;left:0;pointer-events:none;z-index:9999;transition:transform 0.1s;mix-blend-mode:screen;}
+  .cursor-ring{width:36px;height:36px;border:1px solid rgba(0,212,255,0.4);border-radius:50%;position:fixed;top:0;left:0;pointer-events:none;z-index:9998;transition:all 0.15s ease;}
+  #neural-canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;opacity:0.3;}
+
+  nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:1.2rem 4rem;background:rgba(2,4,8,0.85);backdrop-filter:blur(20px);border-bottom:1px solid rgba(0,212,255,0.06);}
+  .nav-logo{font-size:1.3rem;font-weight:800;letter-spacing:-0.02em;}
+  .nav-logo span{color:var(--accent);}
+  .nav-links{display:flex;gap:2rem;}
+  .nav-links a{font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--muted);text-decoration:none;letter-spacing:0.08em;transition:color 0.2s;}
+  .nav-links a:hover{color:var(--accent);}
+  .nav-btn{font-family:'JetBrains Mono',monospace;font-size:0.75rem;letter-spacing:0.08em;padding:0.6rem 1.4rem;background:transparent;border:1px solid var(--accent);color:var(--accent);cursor:none;transition:all 0.2s;}
+  .nav-btn:hover{background:rgba(0,212,255,0.1);}
+
+  .hero{position:relative;z-index:1;min-height:100vh;display:flex;align-items:center;padding:0 4rem;padding-top:80px;}
+  .hero-content{max-width:680px;}
+  .hero-tag{font-family:'JetBrains Mono',monospace;font-size:0.72rem;letter-spacing:0.2em;color:var(--accent);text-transform:uppercase;display:inline-flex;align-items:center;gap:0.6rem;margin-bottom:1.8rem;opacity:0;animation:fadeUp 0.8s 0.2s forwards;}
+  .hero-tag::before{content:'';width:24px;height:1px;background:var(--accent);}
+  .hero h1{font-size:clamp(2.8rem,6.5vw,5.5rem);font-weight:800;line-height:0.96;letter-spacing:-0.03em;opacity:0;animation:fadeUp 0.8s 0.4s forwards;}
+  .hero h1 .grad{background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;display:block;}
+  .hero p{margin-top:1.8rem;font-size:1rem;line-height:1.75;color:var(--muted);max-width:460px;opacity:0;animation:fadeUp 0.8s 0.6s forwards;}
+  .hero-actions{margin-top:2.5rem;display:flex;gap:1rem;align-items:center;opacity:0;animation:fadeUp 0.8s 0.8s forwards;flex-wrap:wrap;}
+  .btn-primary{padding:0.85rem 2rem;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-family:'Syne',sans-serif;font-weight:700;font-size:0.88rem;border:none;cursor:none;clip-path:polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%);transition:opacity 0.2s,transform 0.2s;}
+  .btn-primary:hover{opacity:0.85;transform:translateY(-2px);}
+  .btn-ghost{padding:0.85rem 2rem;background:transparent;color:var(--text);font-family:'Syne',sans-serif;font-weight:600;font-size:0.88rem;border:1px solid var(--border);cursor:none;transition:border-color 0.2s,color 0.2s;}
+  .btn-ghost:hover{border-color:var(--accent);color:var(--accent);}
+
+  .stats-bar{position:relative;z-index:1;padding:2.5rem 4rem;border-top:1px solid var(--border);border-bottom:1px solid var(--border);display:flex;gap:4rem;background:rgba(8,14,24,0.7);backdrop-filter:blur(10px);}
+  .stat{flex:1;}
+  .stat-num{font-size:2.3rem;font-weight:800;letter-spacing:-0.04em;color:var(--accent);}
+  .stat-label{font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-top:0.2rem;}
+
+  .section{position:relative;z-index:1;padding:6rem 4rem;}
+  .section-label{font-family:'JetBrains Mono',monospace;font-size:0.7rem;letter-spacing:0.25em;text-transform:uppercase;color:var(--accent);margin-bottom:1rem;display:flex;align-items:center;gap:0.8rem;}
+  .section-label::after{content:'';flex:1;height:1px;background:linear-gradient(to right,var(--border),transparent);max-width:120px;}
+  .section-title{font-size:clamp(1.8rem,3.5vw,2.8rem);font-weight:800;letter-spacing:-0.03em;line-height:1.1;margin-bottom:1rem;}
+  .section-sub{font-size:0.95rem;color:var(--muted);max-width:500px;line-height:1.75;}
+
+  /* TOOLS */
+  .tools-section{background:var(--surface);padding:5rem 4rem;position:relative;z-index:1;}
+  .tool-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:3rem;overflow-x:auto;}
+  .tool-tab{font-family:'JetBrains Mono',monospace;font-size:0.77rem;letter-spacing:0.05em;padding:0.9rem 1.8rem;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);cursor:none;transition:all 0.2s;white-space:nowrap;}
+  .tool-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+  .tool-tab:hover:not(.active){color:var(--text);}
+  .tool-panel{display:none;}
+  .tool-panel.active{display:block;}
+
+  /* CHAT */
+  .chat-layout{display:grid;grid-template-columns:260px 1fr;gap:1.5rem;height:540px;}
+  .chat-sidebar{border:1px solid var(--border);padding:1.2rem;display:flex;flex-direction:column;gap:0.6rem;overflow-y:auto;background:var(--card);}
+  .chat-sidebar-title{font-family:'JetBrains Mono',monospace;font-size:0.65rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);margin-bottom:0.4rem;}
+  .quick-q{background:none;border:1px solid var(--border);padding:0.65rem 0.9rem;font-size:0.8rem;color:var(--muted);cursor:none;text-align:left;line-height:1.4;transition:all 0.2s;font-family:'Syne',sans-serif;}
+  .quick-q:hover{border-color:var(--accent);color:var(--accent);}
+  .chat-main{border:1px solid var(--border);display:flex;flex-direction:column;background:var(--card);}
+  .chat-messages{flex:1;overflow-y:auto;padding:1.5rem;display:flex;flex-direction:column;gap:1rem;}
+  .chat-messages::-webkit-scrollbar{width:3px;}
+  .chat-messages::-webkit-scrollbar-thumb{background:var(--border);}
+  .msg{max-width:82%;line-height:1.65;font-size:0.87rem;}
+  .msg.user{align-self:flex-end;background:rgba(0,212,255,0.07);border:1px solid rgba(0,212,255,0.15);padding:0.75rem 1rem;color:var(--text);}
+  .msg.ai{align-self:flex-start;background:rgba(12,22,36,0.9);border:1px solid var(--border);padding:0.75rem 1rem;color:var(--text);position:relative;}
+  .msg.ai::before{content:'⬡';position:absolute;top:-8px;left:10px;font-size:0.7rem;color:var(--accent);background:var(--card);padding:0 3px;}
+  .msg.ai pre{background:rgba(0,0,0,0.5);padding:0.8rem;margin-top:0.6rem;overflow-x:auto;font-family:'JetBrains Mono',monospace;font-size:0.76rem;border-left:2px solid var(--accent);white-space:pre-wrap;word-break:break-word;}
+  .msg.ai code{font-family:'JetBrains Mono',monospace;color:var(--accent);font-size:0.85em;background:rgba(0,212,255,0.06);padding:1px 4px;}
+  .msg p{margin-bottom:0.4rem;}
+  .msg p:last-child{margin-bottom:0;}
+  .chat-input-row{display:flex;border-top:1px solid var(--border);}
+  .chat-input{flex:1;background:none;border:none;outline:none;padding:1rem 1.2rem;color:var(--text);font-family:'Syne',sans-serif;font-size:0.88rem;}
+  .chat-input::placeholder{color:var(--muted);}
+  .chat-send{padding:0 1.5rem;background:var(--accent);color:var(--bg);font-family:'Syne',sans-serif;font-weight:700;font-size:0.85rem;border:none;cursor:none;transition:opacity 0.2s;flex-shrink:0;}
+  .chat-send:hover{opacity:0.85;}
+  .chat-send:disabled{opacity:0.35;}
+  .typing-indicator{display:flex;align-items:center;gap:0.6rem;padding:0.75rem 1rem;background:rgba(12,22,36,0.9);border:1px solid var(--border);width:fit-content;align-self:flex-start;}
+  .typing-dots{display:flex;gap:3px;}
+  .typing-dot{width:5px;height:5px;background:var(--accent);border-radius:50%;animation:blink 1.2s infinite;}
+  .typing-dot:nth-child(2){animation-delay:0.2s;}
+  .typing-dot:nth-child(3){animation-delay:0.4s;}
+  @keyframes blink{0%,80%,100%{opacity:0.2}40%{opacity:1}}
+
+  /* CODE GENERATOR */
+  .codegen-layout{display:grid;grid-template-columns:1fr 1.1fr;gap:1.5rem;min-height:520px;}
+  .codegen-left{display:flex;flex-direction:column;gap:0.9rem;}
+  .codegen-right{border:1px solid var(--border);background:var(--card);display:flex;flex-direction:column;}
+  .form-group{display:flex;flex-direction:column;gap:0.4rem;}
+  .form-label{font-family:'JetBrains Mono',monospace;font-size:0.67rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);}
+  .form-select,.form-input,.form-textarea{background:var(--card);border:1px solid var(--border);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:0.8rem;padding:0.65rem 0.9rem;outline:none;transition:border-color 0.2s;width:100%;cursor:none;}
+  .form-select option{background:#0c1624;}
+  .form-textarea{resize:vertical;min-height:90px;line-height:1.6;}
+  .form-select:focus,.form-input:focus,.form-textarea:focus{border-color:var(--accent);}
+  .codegen-output{flex:1;padding:1rem;font-family:'JetBrains Mono',monospace;font-size:0.75rem;line-height:1.7;color:#b8d4f0;overflow-y:auto;white-space:pre-wrap;word-break:break-word;}
+  .codegen-output .placeholder{color:var(--muted);font-style:italic;}
+  .codegen-output-header{display:flex;align-items:center;justify-content:space-between;padding:0.7rem 1rem;border-bottom:1px solid var(--border);}
+  .codegen-output-title{font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:var(--accent);letter-spacing:0.1em;}
+  .copy-btn{font-family:'JetBrains Mono',monospace;font-size:0.68rem;padding:0.25rem 0.7rem;background:transparent;border:1px solid var(--border);color:var(--muted);cursor:none;transition:all 0.2s;}
+  .copy-btn:hover{border-color:var(--accent3);color:var(--accent3);}
+
+  /* CONCEPT */
+  .concept-layout{display:grid;grid-template-columns:1fr 1.4fr;gap:1.5rem;min-height:500px;}
+  .concept-topics{display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;}
+  .concept-topic{background:var(--card);border:1px solid var(--border);padding:0.75rem 0.9rem;font-size:0.8rem;cursor:none;text-align:left;transition:all 0.2s;line-height:1.4;font-family:'Syne',sans-serif;}
+  .concept-topic .topic-icon{font-size:0.95rem;margin-bottom:0.25rem;display:block;}
+  .concept-topic:hover,.concept-topic.selected{border-color:var(--accent);background:rgba(0,212,255,0.05);color:var(--accent);}
+  .concept-custom{display:flex;gap:0.5rem;margin-top:0.6rem;}
+  .concept-custom input{flex:1;background:var(--card);border:1px solid var(--border);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:0.8rem;padding:0.65rem 0.9rem;outline:none;transition:border-color 0.2s;}
+  .concept-custom input:focus{border-color:var(--accent);}
+  .concept-custom button{padding:0.65rem 1.1rem;background:var(--accent2);color:#fff;border:none;cursor:none;font-family:'Syne',sans-serif;font-weight:700;font-size:0.8rem;transition:opacity 0.2s;white-space:nowrap;}
+  .concept-custom button:hover{opacity:0.85;}
+  .concept-output{border:1px solid var(--border);background:var(--card);padding:1.5rem;overflow-y:auto;font-size:0.87rem;line-height:1.75;color:var(--text);}
+  .concept-output h3{color:var(--accent);font-size:1.05rem;margin-bottom:0.9rem;}
+  .concept-output p{margin-bottom:0.75rem;}
+  .concept-output .analogy{border-left:2px solid var(--accent3);padding-left:1rem;color:var(--accent3);font-style:italic;margin:0.9rem 0;}
+  .concept-output .key-point{background:rgba(0,212,255,0.04);border:1px solid rgba(0,212,255,0.1);padding:0.55rem 0.8rem;margin:0.4rem 0;font-family:'JetBrains Mono',monospace;font-size:0.77rem;}
+  .concept-output strong{color:var(--text);font-weight:700;}
+
+  /* RECOMMENDER */
+  .recommender-layout{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;min-height:500px;}
+  .rec-form{display:flex;flex-direction:column;gap:0.9rem;}
+  .rec-chips{display:flex;flex-wrap:wrap;gap:0.45rem;margin-top:0.3rem;}
+  .rec-chip{font-family:'JetBrains Mono',monospace;font-size:0.7rem;padding:0.3rem 0.75rem;border:1px solid var(--border);color:var(--muted);cursor:none;transition:all 0.2s;background:none;}
+  .rec-chip.selected{border-color:var(--accent);color:var(--accent);background:rgba(0,212,255,0.07);}
+  .rec-chip:hover{border-color:var(--muted);}
+  .rec-output{border:1px solid var(--border);background:var(--card);padding:1.5rem;overflow-y:auto;}
+  .rec-placeholder{color:var(--muted);font-size:0.87rem;text-align:center;padding:3rem 1rem;}
+  .rec-card{border:1px solid var(--border);padding:1.1rem;margin-bottom:0.9rem;transition:border-color 0.2s;}
+  .rec-card:hover{border-color:rgba(0,212,255,0.25);}
+  .rec-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:0.55rem;}
+  .rec-model-name{font-weight:700;font-size:0.95rem;}
+  .rec-score{font-family:'JetBrains Mono',monospace;font-size:0.73rem;padding:0.2rem 0.55rem;border:1px solid;}
+  .rec-desc{font-size:0.82rem;color:var(--muted);line-height:1.6;margin-bottom:0.7rem;}
+  .rec-pros{display:flex;flex-wrap:wrap;gap:0.35rem;}
+  .rec-pro{font-family:'JetBrains Mono',monospace;font-size:0.66rem;padding:0.18rem 0.55rem;background:rgba(16,185,129,0.07);border:1px solid rgba(16,185,129,0.18);color:var(--accent3);}
+
+  /* SERVICES */
+  .services-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;margin-top:3.5rem;border:1px solid var(--border);background:var(--border);}
+  .service-card{background:var(--card);padding:2.1rem 1.7rem;position:relative;overflow:hidden;transition:background 0.3s;}
+  .service-card:hover{background:#0f1e30;}
+  .service-card::before{content:'';position:absolute;top:0;left:0;width:100%;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:0;transition:opacity 0.3s;}
+  .service-card:hover::before{opacity:1;}
+  .service-icon{width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;background:rgba(0,212,255,0.06);border:1px solid rgba(0,212,255,0.15);margin-bottom:1.2rem;}
+  .service-card h3{font-size:1rem;font-weight:700;margin-bottom:0.5rem;}
+  .service-card p{font-size:0.83rem;color:var(--muted);line-height:1.65;}
+  .service-tag{margin-top:1rem;font-family:'JetBrains Mono',monospace;font-size:0.63rem;letter-spacing:0.1em;color:var(--accent3);text-transform:uppercase;}
+
+  /* MODELS */
+  .models-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:3.5rem;}
+  .model-card{border:1px solid var(--border);padding:1.8rem;position:relative;transition:border-color 0.3s,transform 0.3s;}
+  .model-card:hover{border-color:rgba(0,212,255,0.3);transform:translateY(-3px);}
+  .model-card.featured{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:2rem;align-items:center;border-color:rgba(0,212,255,0.15);background:linear-gradient(135deg,rgba(0,212,255,0.02),rgba(124,58,237,0.02));}
+  .model-badge{position:absolute;top:1rem;right:1rem;font-family:'JetBrains Mono',monospace;font-size:0.62rem;letter-spacing:0.1em;padding:0.2rem 0.6rem;background:rgba(0,212,255,0.1);color:var(--accent);text-transform:uppercase;}
+  .model-name{font-size:1.5rem;font-weight:800;letter-spacing:-0.02em;}
+  .model-version{font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:var(--accent2);margin-top:0.3rem;margin-bottom:0.8rem;}
+  .model-desc{font-size:0.85rem;color:var(--muted);line-height:1.65;}
+  .model-metrics{display:flex;flex-direction:column;gap:0.85rem;}
+  .metric-row{display:flex;align-items:center;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:0.75rem;}
+  .metric-label{color:var(--muted);}
+  .metric-val{color:var(--accent);}
+  .metric-bar{width:100%;height:3px;background:var(--border);margin-top:0.25rem;position:relative;}
+  .metric-fill{position:absolute;top:0;left:0;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));width:0;transition:width 1.5s ease;}
+
+  /* TECH SCROLL */
+  .tech-section{overflow:hidden;padding:4rem 4rem;position:relative;z-index:1;}
+  .tech-scroll{display:flex;gap:1.2rem;animation:scrollLeft 28s linear infinite;width:max-content;}
+  .tech-scroll:hover{animation-play-state:paused;}
+  .tech-pill{display:flex;align-items:center;gap:0.6rem;padding:0.6rem 1.2rem;border:1px solid var(--border);background:var(--card);font-family:'JetBrains Mono',monospace;font-size:0.77rem;color:var(--text);white-space:nowrap;transition:border-color 0.2s;}
+  .tech-pill:hover{border-color:var(--accent);}
+  .tech-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+
+  /* STEPS */
+  .steps{margin-top:3.5rem;}
+  .step{display:grid;grid-template-columns:70px 1fr;gap:2rem;padding:2rem 0;border-bottom:1px solid var(--border);align-items:start;opacity:0;transform:translateX(-20px);transition:opacity 0.6s,transform 0.6s;}
+  .step.visible{opacity:1;transform:translateX(0);}
+  .step-num{font-size:3.5rem;font-weight:800;letter-spacing:-0.05em;line-height:1;color:var(--border);transition:color 0.3s;}
+  .step:hover .step-num{color:var(--accent);}
+  .step-content h3{font-size:1.15rem;font-weight:700;margin-bottom:0.4rem;}
+  .step-content p{font-size:0.86rem;color:var(--muted);line-height:1.65;}
+  .step-tags{display:flex;gap:0.5rem;margin-top:0.8rem;flex-wrap:wrap;}
+  .step-tag{font-family:'JetBrains Mono',monospace;font-size:0.64rem;letter-spacing:0.05em;padding:0.2rem 0.6rem;border:1px solid var(--border);color:var(--muted);}
+
+  /* CTA */
+  .cta-section{position:relative;z-index:1;padding:8rem 4rem;text-align:center;overflow:hidden;}
+  .cta-section::before{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:600px;height:600px;background:radial-gradient(circle,rgba(0,212,255,0.05) 0%,transparent 70%);pointer-events:none;}
+  .cta-section h2{font-size:clamp(2.2rem,4.5vw,4rem);font-weight:800;letter-spacing:-0.03em;line-height:1.05;margin-bottom:1.2rem;}
+  .cta-section p{font-size:1rem;color:var(--muted);margin-bottom:2.5rem;}
+  .cta-input-row{display:flex;max-width:460px;margin:0 auto;border:1px solid var(--border);background:var(--card);}
+  .cta-input{flex:1;padding:0.9rem 1.3rem;background:none;border:none;outline:none;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:0.82rem;}
+  .cta-input::placeholder{color:var(--muted);}
+  .cta-submit{padding:0.9rem 1.8rem;background:var(--accent);color:var(--bg);font-family:'Syne',sans-serif;font-weight:700;font-size:0.82rem;border:none;cursor:none;transition:opacity 0.2s;}
+  .cta-submit:hover{opacity:0.85;}
+
+  footer{position:relative;z-index:1;padding:2.5rem 4rem;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--surface);}
+  .footer-logo{font-size:1.1rem;font-weight:800;}
+  .footer-logo span{color:var(--accent);}
+  .footer-copy{font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:var(--muted);}
+  .footer-links{display:flex;gap:2rem;}
+  .footer-links a{font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:var(--muted);text-decoration:none;transition:color 0.2s;}
+  .footer-links a:hover{color:var(--accent);}
+
+  .error-msg{color:#f87171;font-size:0.82rem;padding:0.5rem 0.8rem;border:1px solid rgba(248,113,113,0.25);background:rgba(248,113,113,0.04);display:inline-block;}
+  .spinner{width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;display:inline-block;vertical-align:middle;}
+
+  @keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes scrollLeft{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+  @keyframes blink{0%,80%,100%{opacity:0.2}40%{opacity:1}}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  body::after{content:'';position:fixed;top:0;left:0;width:100%;height:100%;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.012) 2px,rgba(0,0,0,0.012) 4px);pointer-events:none;z-index:5;mix-blend-mode:multiply;}
+  ::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-track{background:var(--bg);}::-webkit-scrollbar-thumb{background:var(--border);}::-webkit-scrollbar-thumb:hover{background:var(--accent);}
+  ::selection{background:rgba(0,212,255,0.2);color:var(--text);}
+
+  @media(max-width:900px){
+    nav{padding:1rem 1.5rem;}.nav-links{display:none;}
+    .hero{padding:6rem 1.5rem 3rem;}.stats-bar{padding:2rem 1.5rem;gap:2rem;flex-wrap:wrap;}
+    .section,.tools-section{padding:4rem 1.5rem;}
+    .chat-layout,.codegen-layout,.concept-layout,.recommender-layout,.models-grid{grid-template-columns:1fr;}
+    .model-card.featured{grid-template-columns:1fr;}.services-grid{grid-template-columns:1fr;}
+    .tech-section{padding:3rem 1.5rem;}.cta-section{padding:5rem 1.5rem;}
+    footer{padding:2rem 1.5rem;flex-direction:column;gap:1.2rem;text-align:center;}
+    .chat-sidebar{display:none;}.chat-layout{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+<canvas id="neural-canvas"></canvas>
+
+<nav>
+  <div class="nav-logo">Neural<span>Core</span></div>
+  <div class="nav-links">
+    <a href="#tools">AI Tools</a>
+    <a href="#services">Services</a>
+    <a href="#models">Models</a>
+    <a href="#process">Process</a>
+  </div>
+  <button class="nav-btn" onclick="document.getElementById('tools').scrollIntoView({behavior:'smooth'})">Try AI Tools</button>
+</nav>
+
+<section class="hero">
+  <div class="hero-content">
+    <div class="hero-tag">4 Live AI-Powered Tools Inside</div>
+    <h1>Your AI/ML<br><span class="grad">Learning Hub.</span></h1>
+    <p>Ask anything about AI. Generate ML code instantly. Get any concept explained simply. Find the perfect model for your problem — all with real AI.</p>
+    <div class="hero-actions">
+      <button class="btn-primary" onclick="document.getElementById('tools').scrollIntoView({behavior:'smooth'})">🚀 Launch AI Tools</button>
+      <button class="btn-ghost" onclick="document.getElementById('models').scrollIntoView({behavior:'smooth'})">Explore Models</button>
+    </div>
+  </div>
+</section>
+
+<div class="stats-bar">
+  <div class="stat"><div class="stat-num" data-target="98.7">0</div><div class="stat-label">Model Accuracy %</div></div>
+  <div class="stat"><div class="stat-num" data-target="2.4">0</div><div class="stat-label">ms Avg Latency</div></div>
+  <div class="stat"><div class="stat-num" data-target="500">0</div><div class="stat-label">Models Deployed</div></div>
+  <div class="stat"><div class="stat-num" data-target="12000">0</div><div class="stat-label">API Calls / sec</div></div>
+</div>
+
+<!-- ========== LIVE AI TOOLS ========== -->
+<section class="tools-section" id="tools">
+  <div class="section-label">Live AI Tools</div>
+  <h2 class="section-title">Use real AI,<br>right here.</h2>
+  <p class="section-sub" style="margin-bottom:2.5rem">Powered by Claude. No signup. Just start using.</p>
+
+  <div class="tool-tabs">
+    <button class="tool-tab active" onclick="switchTab('chat',this)">🤖 AI Assistant</button>
+    <button class="tool-tab" onclick="switchTab('codegen',this)">💻 Code Generator</button>
+    <button class="tool-tab" onclick="switchTab('concept',this)">📚 Concept Explainer</button>
+    <button class="tool-tab" onclick="switchTab('recommender',this)">🧪 Model Recommender</button>
+  </div>
+
+  <!-- CHAT -->
+  <div class="tool-panel active" id="panel-chat">
+    <div class="chat-layout">
+      <div class="chat-sidebar">
+        <div class="chat-sidebar-title">Quick Questions</div>
+        <button class="quick-q" onclick="askQuick('What is the difference between supervised and unsupervised learning?')">Supervised vs Unsupervised?</button>
+        <button class="quick-q" onclick="askQuick('Explain overfitting and how to prevent it in machine learning')">What is overfitting?</button>
+        <button class="quick-q" onclick="askQuick('How do transformer models work? Explain attention mechanism.')">How do Transformers work?</button>
+        <button class="quick-q" onclick="askQuick('What is gradient descent and how does backpropagation use it?')">What is gradient descent?</button>
+        <button class="quick-q" onclick="askQuick('Explain convolutional neural networks (CNN) with a simple example')">How do CNNs work?</button>
+        <button class="quick-q" onclick="askQuick('What is the difference between precision, recall and F1-score?')">Precision, Recall, F1?</button>
+        <button class="quick-q" onclick="askQuick('When should I use reinforcement learning vs supervised learning?')">When to use RL?</button>
+        <button class="quick-q" onclick="askQuick('What is the bias-variance tradeoff and why does it matter?')">Bias-Variance Tradeoff?</button>
+      </div>
+      <div class="chat-main">
+        <div class="chat-messages" id="chatMessages">
+          <div class="msg ai"><p>👋 Hi! I'm NeuralCore's AI Assistant — powered by Claude.</p><p>Ask me anything about machine learning, deep learning, AI concepts, Python code, career advice, or paper explanations. What would you like to learn?</p></div>
+        </div>
+        <div class="chat-input-row">
+          <input class="chat-input" id="chatInput" placeholder="Ask anything about AI/ML..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat()}">
+          <button class="chat-send" id="chatSend" onclick="sendChat()">Send →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CODE GENERATOR -->
+  <div class="tool-panel" id="panel-codegen">
+    <div class="codegen-layout">
+      <div class="codegen-left">
+        <div class="form-group">
+          <label class="form-label">Task Type</label>
+          <select class="form-select" id="taskType">
+            <option value="classification">Classification</option>
+            <option value="regression">Regression</option>
+            <option value="clustering">Clustering</option>
+            <option value="nlp text classification">NLP — Text Classification</option>
+            <option value="image classification computer vision">Computer Vision — Image Classification</option>
+            <option value="time series forecasting">Time Series Forecasting</option>
+            <option value="recommendation system">Recommendation System</option>
+            <option value="custom neural network">Custom Neural Network</option>
+            <option value="data preprocessing pipeline">Data Preprocessing Pipeline</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Algorithm / Model</label>
+          <select class="form-select" id="algorithmType">
+            <option value="Random Forest">Random Forest</option>
+            <option value="XGBoost">XGBoost / Gradient Boosting</option>
+            <option value="SVM (Support Vector Machine)">SVM</option>
+            <option value="Logistic Regression">Logistic Regression</option>
+            <option value="PyTorch Neural Network">PyTorch Neural Network</option>
+            <option value="Scikit-learn Pipeline">Scikit-learn Pipeline</option>
+            <option value="BERT fine-tuning with HuggingFace">BERT (HuggingFace)</option>
+            <option value="CNN with PyTorch">CNN with PyTorch</option>
+            <option value="LSTM sequence model">LSTM</option>
+            <option value="K-Means Clustering">K-Means Clustering</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Describe Your Problem</label>
+          <textarea class="form-textarea" id="problemDesc" placeholder="e.g., I have a CSV with 1000 rows of customer data (age, income, purchase history) and want to predict whether a customer will churn..."></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Extra Requirements (optional)</label>
+          <input class="form-input" id="extraReqs" placeholder="e.g., include cross-validation, plot confusion matrix, hyperparameter tuning...">
+        </div>
+        <button class="btn-primary" onclick="generateCode()" id="genBtn" style="width:100%;clip-path:none;justify-content:center">⚡ Generate Code</button>
+      </div>
+      <div class="codegen-right">
+        <div class="codegen-output-header">
+          <span class="codegen-output-title">// GENERATED PYTHON CODE</span>
+          <button class="copy-btn" onclick="copyCode()">Copy</button>
+        </div>
+        <div class="codegen-output" id="codeOutput"><span class="placeholder"># Your ML code will appear here.
+# Fill the form and click Generate Code.
+
+import pandas as pd
+import numpy as np
+from sklearn.ensemble import RandomForestClassifier
+# ...</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONCEPT EXPLAINER -->
+  <div class="tool-panel" id="panel-concept">
+    <div class="concept-layout">
+      <div>
+        <p style="font-size:0.83rem;color:var(--muted);margin-bottom:1rem">Click any topic for a clear, beginner-friendly explanation:</p>
+        <div class="concept-topics">
+          <button class="concept-topic" onclick="explainConcept('Neural Networks',this)"><span class="topic-icon">🧠</span>Neural Networks</button>
+          <button class="concept-topic" onclick="explainConcept('Decision Trees and Random Forests',this)"><span class="topic-icon">🌳</span>Decision Trees</button>
+          <button class="concept-topic" onclick="explainConcept('Backpropagation algorithm',this)"><span class="topic-icon">🔄</span>Backpropagation</button>
+          <button class="concept-topic" onclick="explainConcept('Attention Mechanism in Transformers',this)"><span class="topic-icon">👁️</span>Attention Mechanism</button>
+          <button class="concept-topic" onclick="explainConcept('Principal Component Analysis PCA',this)"><span class="topic-icon">📉</span>PCA</button>
+          <button class="concept-topic" onclick="explainConcept('Generative Adversarial Networks GANs',this)"><span class="topic-icon">🎨</span>GANs</button>
+          <button class="concept-topic" onclick="explainConcept('Transfer Learning',this)"><span class="topic-icon">🔀</span>Transfer Learning</button>
+          <button class="concept-topic" onclick="explainConcept('Regularization in ML: L1, L2, Dropout',this)"><span class="topic-icon">🛡️</span>Regularization</button>
+          <button class="concept-topic" onclick="explainConcept('Word Embeddings and Word2Vec',this)"><span class="topic-icon">📦</span>Embeddings</button>
+          <button class="concept-topic" onclick="explainConcept('Reinforcement Learning basics',this)"><span class="topic-icon">🎮</span>Reinforcement Learning</button>
+        </div>
+        <div class="concept-custom">
+          <input id="customTopic" placeholder="Or type any ML concept...">
+          <button onclick="explainCustom()">Explain →</button>
+        </div>
+      </div>
+      <div class="concept-output" id="conceptOutput">
+        <div style="color:var(--muted);font-size:0.87rem;text-align:center;padding:3rem 1rem">
+          <div style="font-size:2rem;margin-bottom:1rem">📚</div>
+          Select a concept or type your own to get a clear explanation with real-world analogies and key insights.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODEL RECOMMENDER -->
+  <div class="tool-panel" id="panel-recommender">
+    <div class="recommender-layout">
+      <div class="rec-form">
+        <div class="form-group">
+          <label class="form-label">Problem Type</label>
+          <div class="rec-chips">
+            <button class="rec-chip" onclick="toggleChip(this)">Image Classification</button>
+            <button class="rec-chip" onclick="toggleChip(this)">Text Generation</button>
+            <button class="rec-chip" onclick="toggleChip(this)">Object Detection</button>
+            <button class="rec-chip" onclick="toggleChip(this)">Tabular Data</button>
+            <button class="rec-chip" onclick="toggleChip(this)">Time Series</button>
+            <button class="rec-chip" onclick="toggleChip(this)">Anomaly Detection</button>
+            <button class="rec-chip" onclick="toggleChip(this)">Recommendation</button>
+            <button class="rec-chip" onclick="toggleChip(this)">Sentiment Analysis</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Dataset Size</label>
+          <div class="rec-chips">
+            <button class="rec-chip" onclick="toggleChip(this)">Tiny (&lt;1K)</button>
+            <button class="rec-chip" onclick="toggleChip(this)">Small (1K–50K)</button>
+            <button class="rec-chip" onclick="toggleChip(this)">Medium (50K–1M)</button>
+            <button class="rec-chip" onclick="toggleChip(this)">Large (1M+)</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Priority</label>
+          <div class="rec-chips">
+            <button class="rec-chip" onclick="toggleChip(this)">Max Accuracy</button>
+            <button class="rec-chip" onclick="toggleChip(this)">Fast Inference</button>
+            <button class="rec-chip" onclick="toggleChip(this)">Low Resources</button>
+            <button class="rec-chip" onclick="toggleChip(this)">Easy to Train</button>
+            <button class="rec-chip" onclick="toggleChip(this)">Explainability</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Additional Context (optional)</label>
+          <textarea class="form-textarea" id="recContext" placeholder="Describe your use case in detail..." style="min-height:75px"></textarea>
+        </div>
+        <button class="btn-primary" onclick="getRecommendation()" id="recBtn" style="clip-path:none;width:100%;justify-content:center">🔍 Get AI Recommendations</button>
+      </div>
+      <div class="rec-output" id="recOutput">
+        <div class="rec-placeholder">
+          <div style="font-size:2rem;margin-bottom:1rem">🧪</div>
+          Select your requirements on the left. AI will recommend the best models for your specific use case.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SERVICES -->
+<section class="section" id="services">
+  <div class="section-label">Core Capabilities</div>
+  <h2 class="section-title">Everything you need<br>to ship AI products.</h2>
+  <p class="section-sub">From research to production, our platform covers the full ML lifecycle.</p>
+  <div class="services-grid">
+    <div class="service-card"><div class="service-icon">🧠</div><h3>Deep Learning</h3><p>Train transformer, CNN, and RNN architectures with distributed GPU clusters. AutoML pipeline included.</p><div class="service-tag">→ PyTorch · JAX · TensorFlow</div></div>
+    <div class="service-card"><div class="service-icon">👁️</div><h3>Computer Vision</h3><p>Object detection, segmentation, OCR, and video understanding at scale with SOTA models.</p><div class="service-tag">→ YOLO · SAM · CLIP</div></div>
+    <div class="service-card"><div class="service-icon">💬</div><h3>Natural Language</h3><p>Fine-tune LLMs, build RAG pipelines, and deploy multilingual NLP for any use case.</p><div class="service-tag">→ GPT · BERT · LLaMA</div></div>
+    <div class="service-card"><div class="service-icon">📊</div><h3>MLOps Platform</h3><p>End-to-end experiment tracking, model versioning, A/B testing, and automated retraining.</p><div class="service-tag">→ MLflow · DVC · W&B</div></div>
+    <div class="service-card"><div class="service-icon">⚡</div><h3>Real-time Inference</h3><p>Serve models at sub-millisecond latency with auto-scaling, edge deployment, and load balancing.</p><div class="service-tag">→ ONNX · TensorRT · Triton</div></div>
+    <div class="service-card"><div class="service-icon">🔒</div><h3>Federated Learning</h3><p>Train across distributed data sources without compromising privacy. GDPR and HIPAA compliant.</p><div class="service-tag">→ Flower · PySyft · TF Federated</div></div>
+  </div>
+</section>
+
+<!-- MODELS -->
+<section class="section" style="background:var(--surface)" id="models">
+  <div class="section-label">Model Hub</div>
+  <h2 class="section-title">Production-ready<br>AI models.</h2>
+  <p class="section-sub">Drop-in models for every task. Fine-tune or use out of the box.</p>
+  <div class="models-grid">
+    <div class="model-card featured">
+      <div>
+        <div class="model-badge">Featured</div>
+        <div class="model-name">NeuralCore-7B</div>
+        <div class="model-version">v2.4.1 · Language Model</div>
+        <div class="model-desc">Our flagship LLM. Trained on 2T tokens with RLHF alignment. Excels at reasoning, code generation, and multilingual tasks. 128K token context window.</div>
+      </div>
+      <div class="model-metrics">
+        <div><div class="metric-row"><span class="metric-label">MMLU</span><span class="metric-val">86.4%</span></div><div class="metric-bar"><div class="metric-fill" data-width="86"></div></div></div>
+        <div><div class="metric-row"><span class="metric-label">HumanEval</span><span class="metric-val">78.2%</span></div><div class="metric-bar"><div class="metric-fill" data-width="78"></div></div></div>
+        <div><div class="metric-row"><span class="metric-label">HellaSwag</span><span class="metric-val">92.1%</span></div><div class="metric-bar"><div class="metric-fill" data-width="92"></div></div></div>
+        <div><div class="metric-row"><span class="metric-label">GSM8K</span><span class="metric-val">71.8%</span></div><div class="metric-bar"><div class="metric-fill" data-width="72"></div></div></div>
+      </div>
+    </div>
+    <div class="model-card">
+      <div class="model-badge" style="background:rgba(16,185,129,0.1);color:var(--accent3)">Vision</div>
+      <div class="model-name" style="font-size:1.2rem">VisionNet-Pro</div>
+      <div class="model-version">v1.8.0 · Multimodal</div>
+      <div class="model-desc">Real-time image and video understanding. Handles classification, detection, segmentation in one call.</div>
+      <div class="model-metrics" style="margin-top:1.3rem">
+        <div><div class="metric-row"><span class="metric-label">COCO mAP</span><span class="metric-val" style="color:var(--accent3)">58.3</span></div><div class="metric-bar"><div class="metric-fill" data-width="58" style="background:linear-gradient(90deg,var(--accent3),#06d6a0)"></div></div></div>
+        <div><div class="metric-row"><span class="metric-label">ImageNet Top-1</span><span class="metric-val" style="color:var(--accent3)">91.2%</span></div><div class="metric-bar"><div class="metric-fill" data-width="91" style="background:linear-gradient(90deg,var(--accent3),#06d6a0)"></div></div></div>
+      </div>
+    </div>
+    <div class="model-card">
+      <div class="model-badge" style="background:rgba(124,58,237,0.1);color:var(--accent2)">Audio</div>
+      <div class="model-name" style="font-size:1.2rem">SoundCore-ASR</div>
+      <div class="model-version">v3.1.0 · Speech Recognition</div>
+      <div class="model-desc">100-language ASR with real-time transcription, speaker diarization, and noise robustness.</div>
+      <div class="model-metrics" style="margin-top:1.3rem">
+        <div><div class="metric-row"><span class="metric-label">LibriSpeech WER</span><span class="metric-val" style="color:var(--accent2)">4.2%</span></div><div class="metric-bar"><div class="metric-fill" data-width="96" style="background:linear-gradient(90deg,var(--accent2),#a855f7)"></div></div></div>
+        <div><div class="metric-row"><span class="metric-label">Languages</span><span class="metric-val" style="color:var(--accent2)">100+</span></div><div class="metric-bar"><div class="metric-fill" data-width="85" style="background:linear-gradient(90deg,var(--accent2),#a855f7)"></div></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TECH SCROLL -->
+<section class="tech-section">
+  <div class="section-label" style="padding:0 0 2rem">Technology Stack</div>
+  <div style="overflow:hidden">
+    <div class="tech-scroll">
+      <div class="tech-pill"><span class="tech-dot" style="background:#ee4c2c"></span>PyTorch</div>
+      <div class="tech-pill"><span class="tech-dot" style="background:#ff6f00"></span>TensorFlow</div>
+      <div class="tech-pill"><span class="tech-dot" style="background:#76b900"></span>CUDA</div>
+      <div class="tech-pill"><span class="tech-dot" style="background:#00d4ff"></span>JAX</div>
+      <div class="tech-pill"><span class="tech-dot" style="background:#f7df1e"></span>Scikit-Learn</div>
+      <div class="tech-pill"><span class="tech-dot" style="background:#4584b6"></span>Python</div>
+      <div class="tech-pill"><span class="tech-dot" style="background:#e44d26"></span>ONNX</div>
+      <div class="tech-pill"><span class="tech-dot" style="background:#0db7ed"></span>Docker</div>
+      <div class="tech-pill"><span class="tech-dot" style="background:#326ce5"></span>Kubernetes</div>
+      <div class="tech-pill"><span class="tech-dot" style="background:#9c27b0"></span>Triton</div>
+      <div class="tech-pill"><span class="tech-dot" style="background:#00b2a9"></span>Ray</div>
+      <div class="tech-pill"><span class="tech-dot" style="background:#e91e63"></span>MLflow</div>
+      <div class="tech-pill"><span class="tech-dot" style="background:#ff4500"></span>Rust</div>
+      <div class="tech-pill"><span class="tech-dot" style="background:#00acd7"></span>Go</div>
+      <div class="tech-pill"><span class="tech-dot" style="background:#ee4c2c"></span>PyTorch</div>
+      <div class="tech-pill"><span class="tech-dot" style="background:#ff6f00"></span>TensorFlow</div>
+      <div class="tech-pill"><span class="tech-dot" style="background:#76b900"></span>CUDA</div>
+      <div class="tech-pill"><span class="tech-dot" style="background:#00d4ff"></span>JAX</div>
+      <div class="tech-pill"><span class="tech-dot" style="background:#f7df1e"></span>Scikit-Learn</div>
+      <div class="tech-pill"><span class="tech-dot" style="background:#4584b6"></span>Python</div>
+      <div class="tech-pill"><span class="tech-dot" style="background:#e44d26"></span>ONNX</div>
+      <div class="tech-pill"><span class="tech-dot" style="background:#0db7ed"></span>Docker</div>
+      <div class="tech-pill"><span class="tech-dot" style="background:#326ce5"></span>Kubernetes</div>
+      <div class="tech-pill"><span class="tech-dot" style="background:#9c27b0"></span>Triton</div>
+      <div class="tech-pill"><span class="tech-dot" style="background:#00b2a9"></span>Ray</div>
+      <div class="tech-pill"><span class="tech-dot" style="background:#e91e63"></span>MLflow</div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="section" id="process">
+  <div class="section-label">How It Works</div>
+  <h2 class="section-title">From idea to<br>production AI.</h2>
+  <p class="section-sub">Our streamlined workflow gets your models live fast, reliably, at scale.</p>
+  <div class="steps">
+    <div class="step"><div class="step-num">01</div><div class="step-content"><h3>Data Ingestion & Preprocessing</h3><p>Connect any data source — S3, databases, APIs, or local files. AutoPrep handles cleaning, normalization, and feature engineering automatically.</p><div class="step-tags"><span class="step-tag">Spark</span><span class="step-tag">Pandas</span><span class="step-tag">Great Expectations</span><span class="step-tag">DVC</span></div></div></div>
+    <div class="step"><div class="step-num">02</div><div class="step-content"><h3>Model Training & Experimentation</h3><p>Launch distributed training across GPU clusters. Track experiments with full reproducibility. AutoML finds the best architecture and hyperparameters.</p><div class="step-tags"><span class="step-tag">Optuna</span><span class="step-tag">W&B</span><span class="step-tag">Ray Tune</span><span class="step-tag">DeepSpeed</span></div></div></div>
+    <div class="step"><div class="step-num">03</div><div class="step-content"><h3>Evaluation & Validation</h3><p>Automated benchmarking, fairness auditing, adversarial testing, and drift detection to ensure robustness before production.</p><div class="step-tags"><span class="step-tag">Evidently</span><span class="step-tag">Alibi Detect</span><span class="step-tag">Deepchecks</span></div></div></div>
+    <div class="step"><div class="step-num">04</div><div class="step-content"><h3>Deployment & Scaling</h3><p>One-click deployment to cloud, on-prem, or edge. Auto-scaling handles traffic spikes. Blue/green deployments with zero downtime.</p><div class="step-tags"><span class="step-tag">Kubernetes</span><span class="step-tag">Triton</span><span class="step-tag">TensorRT</span><span class="step-tag">BentoML</span></div></div></div>
+    <div class="step"><div class="step-num">05</div><div class="step-content"><h3>Monitoring & Continuous Learning</h3><p>Real-time dashboards, data drift alerts, and automated retraining. Your model gets smarter as it sees more data.</p><div class="step-tags"><span class="step-tag">Prometheus</span><span class="step-tag">Grafana</span><span class="step-tag">Arize</span></div></div></div>
+  </div>
+</section>
+
+<section class="cta-section">
+  <h2>Ready to build the<br><span style="color:var(--accent)">future of AI?</span></h2>
+  <p>Join 10,000+ engineers already shipping production ML.</p>
+  <div class="cta-input-row">
+    <input class="cta-input" id="ctaEmail" type="email" placeholder="your@email.com">
+    <button class="cta-submit" onclick="ctaSignup()">Get Access →</button>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-logo">Neural<span>Core</span></div>
+  <div class="footer-links"><a href="#">Docs</a><a href="#">Blog</a><a href="#">GitHub</a><a href="#">Discord</a><a href="#">Privacy</a></div>
+  <div class="footer-copy">© 2026 NeuralCore Inc.</div>
+</footer>
+
+<script>
+// CURSOR
+const cursor=document.getElementById('cursor'),ring=document.getElementById('cursorRing');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;});
+function animCursor(){cursor.style.left=mx-6+'px';cursor.style.top=my-6+'px';rx+=(mx-rx)*0.12;ry+=(my-ry)*0.12;ring.style.left=rx-18+'px';ring.style.top=ry-18+'px';requestAnimationFrame(animCursor);}
+animCursor();
+document.querySelectorAll('a,button,input,select,textarea').forEach(el=>{el.addEventListener('mouseenter',()=>cursor.style.transform='scale(2.5)');el.addEventListener('mouseleave',()=>cursor.style.transform='scale(1)');});
+
+// NEURAL CANVAS
+const canvas=document.getElementById('neural-canvas'),ctx=canvas.getContext('2d');
+let W,H,nodes=[],cf=0;
+function resize(){W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight;}resize();window.addEventListener('resize',resize);
+function initNodes(){nodes=[];const c=Math.min(70,Math.floor(W*H/16000));for(let i=0;i<c;i++)nodes.push({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.3,r:Math.random()*2+1,p:Math.random()*Math.PI*2});}initNodes();
+function draw(){ctx.clearRect(0,0,W,H);cf++;const m1=mx/W,m2=my/H;nodes.forEach(n=>{n.x+=n.vx+(m1-.5)*.04;n.y+=n.vy+(m2-.5)*.04;if(n.x<0)n.x=W;if(n.x>W)n.x=0;if(n.y<0)n.y=H;if(n.y>H)n.y=0;n.p+=.02;ctx.beginPath();ctx.arc(n.x,n.y,n.r,0,Math.PI*2);ctx.fillStyle=`rgba(0,212,255,${.4+Math.sin(n.p)*.3})`;ctx.fill();});for(let i=0;i<nodes.length;i++)for(let j=i+1;j<nodes.length;j++){const dx=nodes[i].x-nodes[j].x,dy=nodes[i].y-nodes[j].y,d=Math.sqrt(dx*dx+dy*dy);if(d<145){ctx.beginPath();ctx.moveTo(nodes[i].x,nodes[i].y);ctx.lineTo(nodes[j].x,nodes[j].y);ctx.strokeStyle=`hsla(${200+Math.sin(cf*.005+i)*40},100%,65%,${(1-d/145)*.28})`;ctx.lineWidth=.5;ctx.stroke();}}requestAnimationFrame(draw);}draw();
+
+// STATS
+function animCounter(el){const t=parseFloat(el.dataset.target),isF=el.dataset.target.includes('.');const start=performance.now();function tick(now){const p=Math.min((now-start)/1800,1),e=1-Math.pow(1-p,3),v=t*e;el.textContent=isF?v.toFixed(1):Math.floor(v).toLocaleString();if(p<1)requestAnimationFrame(tick);else el.textContent=isF?t:t.toLocaleString();}requestAnimationFrame(tick);}
+new IntersectionObserver(e=>{e.forEach(x=>{if(x.isIntersecting){x.target.querySelectorAll('[data-target]').forEach(animCounter);}});},{threshold:.3}).observe(document.querySelector('.stats-bar'));
+new IntersectionObserver(e=>{e.forEach(x=>{if(x.isIntersecting)x.target.querySelectorAll('.metric-fill').forEach(f=>f.style.width=f.dataset.width+'%');});},{threshold:.2}).observe(document.querySelector('.models-grid'))||document.querySelectorAll('.model-card').forEach(c=>new IntersectionObserver(e=>{e.forEach(x=>{if(x.isIntersecting)x.target.querySelectorAll('.metric-fill').forEach(f=>f.style.width=f.dataset.width+'%');});},{threshold:.2}).observe(c));
+document.querySelectorAll('.step').forEach((s,i)=>{s.style.transitionDelay=i*.08+'s';new IntersectionObserver(e=>{e.forEach(x=>{if(x.isIntersecting)x.target.classList.add('visible');});},{threshold:.15}).observe(s);});
+
+// CTA
+function ctaSignup(){const i=document.getElementById('ctaEmail');if(i.value.includes('@')){i.value='✓ You\'re on the list!';i.style.color='var(--accent3)';setTimeout(()=>{i.value='';i.style.color='';},3000);}else{i.placeholder='Enter a valid email';setTimeout(()=>{i.placeholder='your@email.com';},2000);}}
+
+// TABS
+function switchTab(name,btn){document.querySelectorAll('.tool-panel').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.tool-tab').forEach(t=>t.classList.remove('active'));document.getElementById('panel-'+name).classList.add('active');btn.classList.add('active');}
+
+// CLAUDE API
+async function callClaude(system,userMsg,history){
+  const msgs=history?[...history,{role:'user',content:userMsg}]:[{role:'user',content:userMsg}];
+  const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,system,messages:msgs})});
+  if(!res.ok)throw new Error('API '+res.status);
+  const d=await res.json();return d.content[0].text;
+}
+
+// CHAT
+const chatHist=[];
+async function sendChat(){
+  const input=document.getElementById('chatInput');
+  const msg=input.value.trim();if(!msg)return;
+  input.value='';
+  appendMsg('user',escHtml(msg));
+  const btn=document.getElementById('chatSend');btn.disabled=true;
+  const typing=appendTyping();
+  try{
+    chatHist.push({role:'user',content:msg});
+    const sys=`You are NeuralCore AI Assistant, an expert ML educator and engineer. Help users understand machine learning, deep learning, AI concepts, Python code, and career advice.
+- Be clear, concise, and practical
+- Use real-world analogies for complex topics  
+- Provide Python code examples when helpful
+- Format code in triple backticks with python language tag
+- Be encouraging and supportive
+- Keep responses focused`;
+    const reply=await callClaude(sys,msg,chatHist.slice(-10,-1));
+    chatHist.push({role:'assistant',content:reply});
+    typing.remove();
+    appendMsg('ai',formatReply(reply));
+  }catch(e){typing.remove();appendMsg('ai','<span class="error-msg">⚠️ Connection error. Please try again.</span>');}
+  btn.disabled=false;
+}
+function askQuick(q){document.getElementById('chatInput').value=q;sendChat();}
+function appendMsg(role,html){const msgs=document.getElementById('chatMessages'),div=document.createElement('div');div.className='msg '+role;div.innerHTML=html;msgs.appendChild(div);msgs.scrollTop=msgs.scrollHeight;return div;}
+function appendTyping(){const msgs=document.getElementById('chatMessages'),div=document.createElement('div');div.className='typing-indicator';div.innerHTML='<span style="font-family:JetBrains Mono,monospace;font-size:0.7rem;color:var(--muted)">Thinking</span><div class="typing-dots"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>';msgs.appendChild(div);msgs.scrollTop=msgs.scrollHeight;return div;}
+function formatReply(t){t=t.replace(/```(\w*)\n?([\s\S]*?)```/g,(_,l,c)=>`<pre><code>${escHtml(c.trim())}</code></pre>`);t=t.replace(/`([^`]+)`/g,'<code>$1</code>');t=t.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');const parts=t.split('\n\n');return parts.map(p=>p.trim()?`<p>${p.replace(/\n/g,'<br>')}</p>`:'').join('');}
+function escHtml(t){return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+// CODE GENERATOR
+async function generateCode(){
+  const task=document.getElementById('taskType').value;
+  const algo=document.getElementById('algorithmType').value;
+  const prob=document.getElementById('problemDesc').value||'a general machine learning task';
+  const extra=document.getElementById('extraReqs').value;
+  const btn=document.getElementById('genBtn'),out=document.getElementById('codeOutput');
+  btn.disabled=true;btn.textContent='⏳ Generating...';
+  out.innerHTML='<span class="placeholder">⚡ Writing your code...</span>';
+  try{
+    const prompt=`Generate complete production-ready Python ML code for:
+Task: ${task}
+Algorithm: ${algo}
+Problem: ${prob}
+${extra?'Extra requirements: '+extra:''}
+
+Rules:
+1. Include all imports at top
+2. Add detailed comments
+3. Include data preprocessing
+4. Include model training and evaluation
+5. Add proper metric reporting
+6. Make it immediately runnable
+7. Output ONLY raw Python code, no markdown fences, no preamble`;
+    const code=await callClaude('You are a senior ML engineer. Output ONLY raw Python code. No markdown. No backticks. No preamble. Start with import statements.',prompt);
+    out.textContent=code.trim();
+  }catch(e){out.innerHTML='<span class="error-msg">⚠️ Generation failed. Please try again.</span>';}
+  btn.disabled=false;btn.textContent='⚡ Generate Code';
+}
+function copyCode(){
+  navigator.clipboard.writeText(document.getElementById('codeOutput').innerText).then(()=>{
+    const btn=document.querySelector('.copy-btn');btn.textContent='✓ Copied!';btn.style.color='var(--accent3)';
+    setTimeout(()=>{btn.textContent='Copy';btn.style.color='';},2000);
+  });
+}
+
+// CONCEPT EXPLAINER
+let selBtn=null;
+async function explainConcept(topic,btn){if(selBtn)selBtn.classList.remove('selected');btn.classList.add('selected');selBtn=btn;await doExplain(topic);}
+async function explainCustom(){const t=document.getElementById('customTopic').value.trim();if(!t)return;if(selBtn)selBtn.classList.remove('selected');selBtn=null;await doExplain(t);}
+document.getElementById('customTopic').addEventListener('keydown',e=>{if(e.key==='Enter')explainCustom();});
+async function doExplain(topic){
+  const out=document.getElementById('conceptOutput');
+  out.innerHTML=`<div style="display:flex;align-items:center;gap:0.8rem;color:var(--muted);font-size:0.85rem"><div class="spinner"></div> Explaining ${escHtml(topic)}...</div>`;
+  try{
+    const sys=`You are an expert ML educator. Explain concepts clearly for beginners and intermediate learners.
+Format your response using ONLY these exact HTML structures — no extra wrapper tags:
+<h3>[emoji] [Topic Name]</h3>
+<p>[Clear 2-3 sentence definition in plain language]</p>
+<div class="analogy">[A memorable real-world analogy that makes this concept click immediately]</div>
+<p><strong>How it works:</strong> [Explain the mechanism in 3-4 simple sentences]</p>
+<div class="key-point">💡 KEY INSIGHT: [The single most important thing to remember about this]</div>
+<p><strong>When to use it:</strong> [2-3 practical real-world use cases with examples]</p>
+<div class="key-point">⚠️ COMMON MISTAKE: [One mistake beginners often make with this concept]</div>
+Be educational, engaging, and practical. Use simple language.`;
+    const html=await callClaude(sys,`Explain in depth: ${topic}`);
+    out.innerHTML=html;
+  }catch(e){out.innerHTML='<span class="error-msg">⚠️ Could not load explanation. Please try again.</span>';}
+}
+
+// MODEL RECOMMENDER
+function toggleChip(chip){chip.classList.toggle('selected');}
+async function getRecommendation(){
+  const selected=Array.from(document.querySelectorAll('.rec-chip.selected')).map(c=>c.textContent);
+  const ctx=document.getElementById('recContext').value;
+  const btn=document.getElementById('recBtn'),out=document.getElementById('recOutput');
+  if(selected.length===0&&!ctx){out.innerHTML='<div class="error-msg">Please select at least one option.</div>';return;}
+  btn.disabled=true;btn.textContent='🔍 Analyzing...';
+  out.innerHTML='<div style="display:flex;align-items:center;gap:0.8rem;color:var(--muted);font-size:0.85rem;padding:2rem"><div class="spinner"></div> Analyzing your requirements...</div>';
+  try{
+    const prompt=`Requirements: ${selected.join(', ')}${ctx?'. Context: '+ctx:''}
+
+Recommend exactly 3 ML models/algorithms. Respond with ONLY this JSON structure (no markdown, no extra text):
+{"recommendations":[{"name":"Model Name","match_score":"95%","description":"2 clear sentences on why this fits the requirements","pros":["advantage 1","advantage 2","advantage 3"],"library":"e.g. PyTorch / scikit-learn / HuggingFace Transformers"}]}`;
+    const raw=await callClaude('You are an expert ML engineer. Respond ONLY with valid JSON. No markdown. No backticks. No explanation.',prompt);
+    let data;
+    try{const c=raw.replace(/```json|```/g,'').trim();data=JSON.parse(c);}catch{throw new Error('JSON parse failed');}
+    const colors=['var(--accent)','var(--accent3)','var(--accent2)'];
+    out.innerHTML=data.recommendations.map((r,i)=>`<div class="rec-card">
+      <div class="rec-card-header">
+        <div class="rec-model-name">${i+1}. ${escHtml(r.name)}</div>
+        <div class="rec-score" style="border-color:${colors[i]};color:${colors[i]}">${escHtml(r.match_score)}</div>
+      </div>
+      <div class="rec-desc">${escHtml(r.description)}</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:0.68rem;color:var(--muted);margin-bottom:0.55rem">📦 ${escHtml(r.library)}</div>
+      <div class="rec-pros">${r.pros.map(p=>`<span class="rec-pro">✓ ${escHtml(p)}</span>`).join('')}</div>
+    </div>`).join('');
+  }catch(e){out.innerHTML='<div class="error-msg">⚠️ Could not get recommendations. Please try again.</div>';}
+  btn.disabled=false;btn.textContent='🔍 Get AI Recommendations';
+}
+</script>
+</body>
+</html>
